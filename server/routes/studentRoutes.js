@@ -9,7 +9,7 @@ const { db } = require("../services/firebase"); // Firestore instance
 // ==========================
 router.post("/register", async (req, res) => {
   try {
-    const { studentId, name, email, phone, qualifications } = req.body;
+    const { studentId, name, email, phone, qualifications, marks } = req.body;
 
     if (!studentId || !name || !email) {
       return res.status(400).json({ message: "Missing required fields." });
@@ -17,7 +17,7 @@ router.post("/register", async (req, res) => {
 
     const studentRef = db.collection("students").doc(studentId);
     await studentRef.set(
-      { name, email, phone, qualifications },
+      { name, email, phone, qualifications, marks },
       { merge: true }
     );
 
@@ -39,10 +39,34 @@ router.post("/applyCourse", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    const appsRef = db.collection("applications");
-    const existingAppsSnap = await appsRef
+    // Check eligibility: get course requirements
+    const courseDoc = await db.collection("institutions").doc(institutionId).collection("courses").doc(courseId).get();
+    if (!courseDoc.exists) {
+      return res.status(404).json({ message: "Course not found." });
+    }
+    const courseData = courseDoc.data();
+
+    // Get student data
+    const studentDoc = await db.collection("students").doc(studentId).get();
+    if (!studentDoc.exists) {
+      return res.status(404).json({ message: "Student not found." });
+    }
+    const studentData = studentDoc.data();
+
+    // Check eligibility
+    const hasRequiredSubjects = courseData.requiredSubjects.every(sub => studentData.qualifications?.includes(sub));
+    const hasMinMarks = studentData.marks >= courseData.minMarks;
+    const hasCertificates = courseData.requiredCertificates.every(cert => studentData.certificates?.includes(cert));
+
+    if (!hasRequiredSubjects || !hasMinMarks || !hasCertificates) {
+      return res.status(400).json({ message: "You do not meet the eligibility criteria for this course." });
+    }
+
+    // Check max 2 applications per institution
+    const existingAppsSnap = await db.collectionGroup("registrations")
       .where("studentId", "==", studentId)
       .where("institutionId", "==", institutionId)
+      .where("type", "==", "course")
       .get();
 
     if (existingAppsSnap.size >= 2) {
@@ -61,11 +85,12 @@ router.post("/applyCourse", async (req, res) => {
       institutionId,
       courseId,
       courseName,
-      status: "Pending",
+      type: "course",
+      status: "pending",
       createdAt: new Date().toISOString(),
     };
 
-    await appsRef.add(newApp);
+    await db.collection("students").doc(studentId).collection("registrations").add(newApp);
     res.status(200).json({ message: "Course application submitted successfully." });
   } catch (error) {
     console.error("Error applying for course:", error);
@@ -90,12 +115,20 @@ router.post("/uploadDocs", async (req, res) => {
       return res.status(404).json({ message: "Student not found." });
     }
 
-    await studentRef.collection("documents").add({
-      fileName,
-      fileURL,
-      fileType,
-      uploadedAt: new Date().toISOString(),
-    });
+    if (fileType === "transcript") {
+      await studentRef.collection("transcripts").add({
+        fileName,
+        fileURL,
+        uploadedAt: new Date().toISOString(),
+      });
+    } else {
+      await studentRef.collection("documents").add({
+        fileName,
+        fileURL,
+        fileType,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
 
     res.status(200).json({ message: "Document metadata uploaded successfully." });
   } catch (error) {
@@ -111,9 +144,8 @@ router.get("/admissions/:studentId", async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    const snapshot = await db
-      .collection("admissions")
-      .where("studentId", "==", studentId)
+    const snapshot = await db.collection("students").doc(studentId).collection("registrations")
+      .where("type", "==", "course")
       .get();
 
     const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -134,12 +166,22 @@ router.get("/jobs/:studentId", async (req, res) => {
 
     if (!studentDoc.exists) return res.status(404).json({ message: "Student not found." });
 
-    const qualifications = studentDoc.data().qualifications || [];
-    const jobsSnapshot = await db.collection("jobs").get();
+    const studentData = studentDoc.data();
+    const qualifications = studentData.qualifications || [];
+    const marks = studentData.marks || 0;
+    const certificates = studentData.certificates || [];
+
+    // Use collectionGroup to get all jobs
+    const jobsSnapshot = await db.collectionGroup("jobs").get();
 
     const matchedJobs = jobsSnapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(job => qualifications.some(q => job.requirements?.includes(q)));
+      .filter(job => {
+        const hasSkills = job.requirements?.some(req => qualifications.includes(req));
+        const hasMarks = marks >= job.minMarks;
+        const hasCerts = job.requiredCertificates?.every(cert => certificates.includes(cert));
+        return hasSkills && hasMarks && hasCerts;
+      });
 
     res.status(200).json(matchedJobs);
   } catch (error) {
@@ -153,27 +195,30 @@ router.get("/jobs/:studentId", async (req, res) => {
 // ==========================
 router.post("/applyJob", async (req, res) => {
   try {
-    const { studentId, jobId } = req.body;
+    const { studentId, jobId, companyId } = req.body;
 
-    if (!studentId || !jobId) return res.status(400).json({ message: "Missing required fields." });
+    if (!studentId || !jobId || !companyId) return res.status(400).json({ message: "Missing required fields." });
 
-    const existing = await db
-      .collection("jobApplications")
-      .where("studentId", "==", studentId)
+    // Check if already applied
+    const existing = await db.collection("students").doc(studentId).collection("registrations")
       .where("jobId", "==", jobId)
+      .where("type", "==", "job")
       .get();
 
     if (!existing.empty) {
       return res.status(400).json({ message: "Already applied for this job." });
     }
 
-    await db.collection("jobApplications").add({
+    const newApp = {
       studentId,
       jobId,
+      companyId,
+      type: "job",
+      status: "applied",
       appliedAt: new Date().toISOString(),
-      status: "Submitted",
-    });
+    };
 
+    await db.collection("students").doc(studentId).collection("registrations").add(newApp);
     res.status(200).json({ message: "Job application submitted successfully." });
   } catch (error) {
     console.error("Error applying for job:", error);

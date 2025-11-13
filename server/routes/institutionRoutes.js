@@ -50,7 +50,7 @@ router.post("/addFaculty", async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    await db.collection("faculties").add(newFaculty);
+    await db.collection("institutions").doc(institutionId).collection("faculties").add(newFaculty);
     res.status(200).json({ message: "Faculty added successfully." });
   } catch (error) {
     console.error("Error adding faculty:", error);
@@ -94,22 +94,25 @@ router.delete("/deleteFaculty/:facultyId", async (req, res) => {
 // Add Course
 router.post("/addCourse", async (req, res) => {
   try {
-    const { institutionId, facultyId, courseName, duration, description } = req.body;
+    const { institutionId, facultyId, courseName, duration, description, requiredSubjects, minMarks, requiredCertificates } = req.body;
 
-    if (!institutionId || !facultyId || !courseName) {
+    if (!institutionId || !courseName) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
     const newCourse = {
       institutionId,
       facultyId,
-      courseName,
+      name: courseName,
       duration,
       description,
+      requiredSubjects: requiredSubjects || [],
+      minMarks: minMarks || 0,
+      requiredCertificates: requiredCertificates || [],
       createdAt: new Date().toISOString(),
     };
 
-    await db.collection("courses").add(newCourse);
+    await db.collection("institutions").doc(institutionId).collection("courses").add(newCourse);
     res.status(200).json({ message: "Course added successfully." });
   } catch (error) {
     console.error("Error adding course:", error);
@@ -121,12 +124,15 @@ router.post("/addCourse", async (req, res) => {
 router.put("/updateCourse/:courseId", async (req, res) => {
   try {
     const { courseId } = req.params;
-    const { courseName, duration, description } = req.body;
+    const { courseName, duration, description, requiredSubjects, minMarks, requiredCertificates } = req.body;
 
     await db.collection("courses").doc(courseId).update({
-      courseName,
+      name: courseName,
       duration,
       description,
+      requiredSubjects,
+      minMarks,
+      requiredCertificates,
       updatedAt: new Date().toISOString(),
     });
 
@@ -153,9 +159,11 @@ router.delete("/deleteCourse/:courseId", async (req, res) => {
 router.get("/applications/:institutionId", async (req, res) => {
   try {
     const { institutionId } = req.params;
+    // Use collectionGroup to query all registrations for courses under this institution
     const snapshot = await db
-      .collection("applications")
+      .collectionGroup("registrations")
       .where("institutionId", "==", institutionId)
+      .where("type", "==", "course")
       .get();
 
     const applications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -175,15 +183,15 @@ router.post("/approveStudent", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    const appRef = db.collection("applications").doc(applicationId);
-    const appDoc = await appRef.get();
-
-    if (!appDoc.exists) {
+    // Find the registration in subcollections
+    const snapshot = await db.collectionGroup("registrations").where("__name__", "==", applicationId).get();
+    if (snapshot.empty) {
       return res.status(404).json({ message: "Application not found." });
     }
 
-    await appRef.update({
-      status,
+    const docRef = snapshot.docs[0].ref;
+    await docRef.update({
+      status: status.toLowerCase(),
       reviewedAt: new Date().toISOString(),
     });
 
@@ -214,8 +222,10 @@ router.post("/publishAdmission", async (req, res) => {
 
     // Ensure student isn't admitted to multiple institutions
     const existingAdmit = await db
-      .collection("admissions")
+      .collectionGroup("registrations")
       .where("studentId", "==", studentId)
+      .where("type", "==", "course")
+      .where("status", "==", "admitted")
       .get();
 
     if (!existingAdmit.empty) {
@@ -224,15 +234,22 @@ router.post("/publishAdmission", async (req, res) => {
       });
     }
 
-    const newAdmission = {
-      studentId,
-      institutionId,
-      courseName,
-      admissionStatus,
-      publishedAt: new Date().toISOString(),
-    };
+    // Update the registration status to admitted
+    const regSnapshot = await db.collectionGroup("registrations")
+      .where("studentId", "==", studentId)
+      .where("institutionId", "==", institutionId)
+      .where("courseName", "==", courseName)
+      .where("type", "==", "course")
+      .get();
 
-    await db.collection("admissions").add(newAdmission);
+    if (!regSnapshot.empty) {
+      const regRef = regSnapshot.docs[0].ref;
+      await regRef.update({ status: "admitted" });
+    }
+
+    // Mark institution as published
+    await db.collection("institutions").doc(institutionId).update({ published: true });
+
     res.status(200).json({ message: "Admission published successfully." });
   } catch (error) {
     console.error("Error publishing admission:", error);

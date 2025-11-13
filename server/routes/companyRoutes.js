@@ -34,7 +34,9 @@ router.post("/postJob", async (req, res) => {
       location,
       requirements,
       preferredSkills,
-      deadline
+      deadline,
+      minMarks,
+      requiredCertificates
     } = req.body;
 
     if (!companyId || !title || !role || !location) {
@@ -47,9 +49,11 @@ router.post("/postJob", async (req, res) => {
       title,
       role,
       location,
-      requirements,
-      preferredSkills,
+      requirements: requirements || [],
+      preferredSkills: preferredSkills || [],
       deadline,
+      minMarks: minMarks || 0,
+      requiredCertificates: requiredCertificates || [],
       createdAt: new Date().toISOString()
     };
 
@@ -92,7 +96,7 @@ router.get("/jobs/:companyId", async (req, res) => {
 /*
 ---------------------------------------------------------
 POST /student/apply
-Writes to: 
+Writes to:
 1. companies/{companyId}/applicants
 2. students/{studentId}/applications
 ---------------------------------------------------------

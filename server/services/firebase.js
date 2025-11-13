@@ -6,7 +6,7 @@ require("dotenv").config();
 const serviceAccountPath = path.resolve(
   __dirname,  // services folder
   "../",      // go up to server root
-  process.env.FIREBASE_SERVICE_ACCOUNT_PATH.replace(/^\.\/services\//, "")
+  process.env.FIREBASE_SERVICE_ACCOUNT_PATH || "ServiceAccountKey.json"
 );
 
 console.log("Using Firebase service account at:", serviceAccountPath);
