@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "cd client && npm run build && mv client/dist dist"
+    "build": "cd client && npm run build && mv dist .."
   },
   "dependencies": {
     "nodemon": "^3.1.10"
