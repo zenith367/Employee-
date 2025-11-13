@@ -1,7 +1,7 @@
 # CareerSync Dashboard Updates and Deployment
 
 ## Pending Tasks
-- [ ] Create simple SVG logo for CareerSync in client/public/logo.svg
+- [x] Create simple SVG logo for CareerSync in client/public/logo.svg
 - [ ] Update CompanyDashboard.jsx: Change BG to gradient, use Card components, Button, ChartContainer
 - [ ] Update StudentDashboard.jsx: Same changes as CompanyDashboard
 - [ ] Update InstitutionDashboard.jsx: Same changes as CompanyDashboard
