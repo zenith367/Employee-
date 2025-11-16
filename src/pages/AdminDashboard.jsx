@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+<<<<<<< HEAD
 import {
   ResponsiveContainer,
   AreaChart,
@@ -12,6 +13,15 @@ import {
 import { auth, db } from "../services/firebase";
 import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
+=======
+import { auth, db } from "../services/firebase";
+import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { signOut } from "firebase/auth";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "../components/ui/chart";
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from "recharts";
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
 
 const TEAL = "#4fd1c5";
 const BG = "#06060a";
@@ -107,6 +117,10 @@ const Sidebar = ({ active, setActive, logout }) => {
     { key: "Companies", label: "Companies" },
     { key: "Students", label: "Students" },
     { key: "Admissions", label: "Admissions" },
+<<<<<<< HEAD
+=======
+    { key: "Reports", label: "Reports" },
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
   ];
 
   return (
@@ -134,12 +148,22 @@ const Sidebar = ({ active, setActive, logout }) => {
         <div>Logged in as</div>
         <div className="text-white font-semibold">Admin</div>
 
+<<<<<<< HEAD
         <button
           onClick={logout}
           className="mt-3 px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
         >
           Logout
         </button>
+=======
+        <Button
+          onClick={logout}
+          variant="destructive"
+          className="mt-3"
+        >
+          Logout
+        </Button>
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
       </div>
     </aside>
   );
@@ -153,6 +177,10 @@ export default function AdminDashboard() {
   const [companies, setCompanies] = useState([]);
   const [students, setStudents] = useState([]);
   const [admissions, setAdmissions] = useState([]);
+<<<<<<< HEAD
+=======
+  const [registrations, setRegistrations] = useState([]);
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
   const [overview, setOverview] = useState({
     totalInstitutions: 0,
     totalStudents: 0,
@@ -177,6 +205,10 @@ export default function AdminDashboard() {
     const com = await getDocs(collection(db, "companies"));
     const stu = await getDocs(collection(db, "students"));
     const adm = await getDocs(collection(db, "admissions"));
+<<<<<<< HEAD
+=======
+    const reg = await getDocs(collection(db, "registrations"));
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
 
     setInstitutions(inst.docs.map((d) => ({ id: d.id, ...d.data() })));
     setFaculties(fac.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -184,6 +216,10 @@ export default function AdminDashboard() {
     setCompanies(com.docs.map((d) => ({ id: d.id, ...d.data() })));
     setStudents(stu.docs.map((d) => ({ id: d.id, ...d.data() })));
     setAdmissions(adm.docs.map((d) => ({ id: d.id, ...d.data() })));
+<<<<<<< HEAD
+=======
+    setRegistrations(reg.docs.map((d) => ({ id: d.id, ...d.data() })));
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
 
     setOverview({
       totalInstitutions: inst.size,
@@ -201,13 +237,18 @@ export default function AdminDashboard() {
   };
 
   // -----------------------------
+<<<<<<< HEAD
   // ✅ APPROVE FUNCTION (Backend + Email)
+=======
+  // ✅ APPROVE FUNCTION (Backend for email + Firebase for status)
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
   // -----------------------------
   const handleApprove = async (collectionName, item) => {
     try {
       const role = collectionName === "institutions" ? "institution" : "company";
 
       const res = await fetch(
+<<<<<<< HEAD
         "https://landing-x99b.onrender.com/api/admin/approve-registration",
         {
           method: "POST",
@@ -218,6 +259,18 @@ export default function AdminDashboard() {
             name: item.name,
             role, // 'institution' or 'company'
           }),
+=======
+        "http://localhost:5000/api/admin/approve-registration",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          email: item.email,
+          name: item.name,
+          role
+        }),
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
         }
       );
 
@@ -233,6 +286,50 @@ export default function AdminDashboard() {
       alert("Failed to approve");
     }
   };
+<<<<<<< HEAD
+=======
+  const handleSuspend = async (collectionName, id) => {
+    try {
+      const itemRef = doc(db, collectionName, id);
+      await updateDoc(itemRef, { status: "suspended" });
+      loadAll();
+    } catch (error) {
+      console.error("Error suspending:", error);
+      alert("Failed to suspend");
+    }
+  };
+
+  // -----------------------------
+  // ✅ PUBLISH ADMISSIONS
+  // -----------------------------
+  const handlePublishAdmissions = async (id) => {
+    try {
+      const itemRef = doc(db, "institutions", id);
+      await updateDoc(itemRef, { published: true });
+      loadAll();
+    } catch (error) {
+      console.error("Error publishing:", error);
+      alert("Failed to publish admissions");
+    }
+  };
+
+  // -----------------------------
+  // ✅ UPDATE FUNCTION
+  // -----------------------------
+  const handleUpdate = async (collectionName, id, currentName) => {
+    const newName = prompt(`Update ${collectionName.slice(0, -1)} name:`, currentName);
+    if (!newName || newName === currentName) return;
+
+    try {
+      const itemRef = doc(db, collectionName, id);
+      await updateDoc(itemRef, { name: newName });
+      loadAll();
+    } catch (error) {
+      console.error("Error updating:", error);
+      alert("Failed to update");
+    }
+  };
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
 
   // -----------------------------
   // ✅ DELETE FUNCTION (Firestore only)
@@ -255,9 +352,22 @@ export default function AdminDashboard() {
     const name = prompt(`Enter ${collectionName.slice(0, -1)} name:`);
     if (!name) return;
 
+<<<<<<< HEAD
     try {
       const collRef = collection(db, collectionName);
       await collRef.add({ name, status: "pending", createdAt: new Date().toISOString() });
+=======
+    let extra = {};
+    if (collectionName === "faculties" || collectionName === "courses") {
+      const instId = prompt("Enter Institution ID:");
+      if (!instId) return;
+      extra.institutionId = instId;
+    }
+
+    try {
+      const collRef = collection(db, collectionName);
+      await addDoc(collRef, { name, status: "pending", createdAt: serverTimestamp(), ...extra });
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
       loadAll();
     } catch (error) {
       console.error("Error adding:", error);
@@ -265,7 +375,11 @@ export default function AdminDashboard() {
     }
   };
 
+<<<<<<< HEAD
   const renderList = (items, collectionName, showApprove = false) => (
+=======
+  const renderList = (items, collectionName, showApprove = false, showSuspend = false, showPublish = false, showUpdate = true) => (
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
     <div className="space-y-3">
       {items.map((i) => (
         <div key={i.id} className="p-4 bg-[rgba(255,255,255,0.05)] rounded flex justify-between items-center">
@@ -273,10 +387,15 @@ export default function AdminDashboard() {
             <div className="text-white font-semibold">{i.name}</div>
             {i.email && <div className="text-gray-400">{i.email}</div>}
             {i.status && <div className="text-gray-400 text-sm">Status: {i.status}</div>}
+<<<<<<< HEAD
+=======
+            {i.institutionId && <div className="text-gray-400 text-sm">Institution ID: {i.institutionId}</div>}
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
           </div>
 
           <div className="flex gap-2">
             {showApprove && i.status !== "approved" && (
+<<<<<<< HEAD
               <button
                 onClick={() => handleApprove(collectionName, i)}
                 className="px-3 py-1 bg-teal-600 text-white rounded"
@@ -290,16 +409,105 @@ export default function AdminDashboard() {
             >
               Delete
             </button>
+=======
+              <Button
+                onClick={() => handleApprove(collectionName, i)}
+                className="bg-teal-600 hover:bg-teal-700"
+              >
+                Approve
+              </Button>
+            )}
+            {showSuspend && i.status !== "suspended" && (
+              <Button
+                onClick={() => handleSuspend(collectionName, i.id)}
+                className="bg-yellow-600 hover:bg-yellow-700"
+              >
+                Suspend
+              </Button>
+            )}
+            {showPublish && !i.published && (
+              <Button
+                onClick={() => handlePublishAdmissions(i.id)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Publish
+              </Button>
+            )}
+            {showUpdate && (
+              <Button
+                onClick={() => handleUpdate(collectionName, i.id, i.name)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Update
+              </Button>
+            )}
+            <Button
+              onClick={() => handleDelete(collectionName, i.id)}
+              variant="destructive"
+            >
+              Delete
+            </Button>
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
           </div>
         </div>
       ))}
 
+<<<<<<< HEAD
       <button
         onClick={() => handleAdd(collectionName)}
         className="mt-4 px-3 py-1 bg-blue-600 text-white rounded"
       >
         Add {collectionName.slice(0, -1)}
       </button>
+=======
+      <Button
+        onClick={() => handleAdd(collectionName)}
+        className="mt-4 bg-blue-600 hover:bg-blue-700"
+      >
+        Add {collectionName.slice(0, -1)}
+      </Button>
+    </div>
+  );
+
+  const renderStudents = () => (
+    <div className="space-y-3">
+      {students.map((s) => {
+        const regs = registrations.filter(r => r.studentId === s.id);
+        return (
+          <div key={s.id} className="p-4 bg-[rgba(255,255,255,0.05)] rounded">
+            <div className="text-white font-semibold">{s.name || s.email}</div>
+            <div className="text-gray-400">Registrations: {regs.length}</div>
+            {regs.map(r => (
+              <div key={r.id} className="text-gray-400 text-sm">- {r.type}: {r.courseName || r.jobTitle} ({r.status})</div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderReports = () => (
+    <div className="space-y-6">
+      <div className="text-white text-xl">System Reports</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-4 bg-[rgba(255,255,255,0.05)] rounded">
+          <h3 className="text-white font-semibold">Course Applications</h3>
+          <div className="text-2xl">{registrations.filter(r => r.type === "course").length}</div>
+        </div>
+        <div className="p-4 bg-[rgba(255,255,255,0.05)] rounded">
+          <h3 className="text-white font-semibold">Job Applications</h3>
+          <div className="text-2xl">{registrations.filter(r => r.type === "job").length}</div>
+        </div>
+        <div className="p-4 bg-[rgba(255,255,255,0.05)] rounded">
+          <h3 className="text-white font-semibold">Admitted Students</h3>
+          <div className="text-2xl">{registrations.filter(r => r.status === "admitted").length}</div>
+        </div>
+        <div className="p-4 bg-[rgba(255,255,255,0.05)] rounded">
+          <h3 className="text-white font-semibold">Pending Approvals</h3>
+          <div className="text-2xl">{companies.filter(c => c.status === "pending").length + institutions.filter(i => i.status === "pending").length}</div>
+        </div>
+      </div>
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
     </div>
   );
 
@@ -311,6 +519,7 @@ export default function AdminDashboard() {
         { label: "Companies", value: overview.totalCompanies },
         { label: "Admissions", value: overview.totalAdmissions },
       ].map((item, i) => (
+<<<<<<< HEAD
         <motion.div
           key={i}
           whileHover={{ y: -5 }}
@@ -319,11 +528,20 @@ export default function AdminDashboard() {
           <div className="text-gray-300 text-sm">{item.label}</div>
           <div className="text-2xl font-semibold text-white mt-2">{item.value}</div>
         </motion.div>
+=======
+        <Card key={i} className="bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.05)]">
+          <CardContent className="p-5">
+            <div className="text-gray-300 text-sm">{item.label}</div>
+            <div className="text-2xl font-semibold text-white mt-2">{item.value}</div>
+          </CardContent>
+        </Card>
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
       ))}
     </div>
   );
 
   const ChartPanel = () => (
+<<<<<<< HEAD
     <div
       className="rounded-2xl p-4 bg-[rgba(255,255,255,0.02)] border border-[rgba(79,209,197,0.03)]"
       style={{ minHeight: 300 }}
@@ -332,6 +550,22 @@ export default function AdminDashboard() {
 
       <div className="w-full h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
+=======
+    <Card className="bg-[rgba(255,255,255,0.02)] border-[rgba(79,209,197,0.03)]">
+      <CardHeader>
+        <CardTitle className="text-white">System Activity Overview</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer
+          config={{
+            value: {
+              label: "Value",
+              color: TEAL,
+            },
+          }}
+          className="h-[260px]"
+        >
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
@@ -339,6 +573,7 @@ export default function AdminDashboard() {
                 <stop offset="95%" stopColor={TEAL} stopOpacity={0} />
               </linearGradient>
             </defs>
+<<<<<<< HEAD
 
             <XAxis dataKey="name" stroke="gray" />
             <YAxis stroke="gray" />
@@ -349,11 +584,22 @@ export default function AdminDashboard() {
         </ResponsiveContainer>
       </div>
     </div>
+=======
+            <XAxis dataKey="name" stroke="white" tick={{ fill: 'white' }} />
+            <YAxis stroke="white" tick={{ fill: 'white' }} />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Area type="monotone" dataKey="value" stroke={TEAL} fill="url(#g)" strokeWidth={2} />
+          </AreaChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
   );
 
   const renderContent = () => {
     switch (active) {
       case "Institutions":
+<<<<<<< HEAD
         return renderList(institutions, "institutions", true);
       case "Faculties":
         return renderList(faculties, "faculties");
@@ -365,6 +611,21 @@ export default function AdminDashboard() {
         return renderList(students, "students");
       case "Admissions":
         return renderList(admissions, "admissions");
+=======
+        return renderList(institutions, "institutions", true, false, true, true);
+      case "Faculties":
+        return renderList(faculties, "faculties", false, false, false, true);
+      case "Courses":
+        return renderList(courses, "courses", false, false, false, true);
+      case "Companies":
+        return renderList(companies, "companies", true, true, false, true);
+      case "Students":
+        return renderStudents();
+      case "Admissions":
+        return renderList(admissions, "admissions", false, false, false, true);
+      case "Reports":
+        return renderReports();
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
       default:
         return (
           <>
@@ -376,7 +637,11 @@ export default function AdminDashboard() {
   };
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen w-full" style={{ background: BG }}>
+=======
+    <div className="min-h-screen w-full bg-gradient-to-b from-[#0a0a1a] via-[#0a0a2a] to-black">
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
       <GlobeBG />
       <Sidebar active={active} setActive={setActive} logout={logout} />
 

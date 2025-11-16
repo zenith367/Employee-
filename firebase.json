@@ -1,10 +1,15 @@
 {
   "hosting": {
+<<<<<<< HEAD
     "public": "dist",
+=======
+    "public": "public",
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+<<<<<<< HEAD
     ],
     "rewrites": [
       {
@@ -12,5 +17,11 @@
         "destination": "/index.html"
       }
     ]
+=======
+    ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
   }
 }

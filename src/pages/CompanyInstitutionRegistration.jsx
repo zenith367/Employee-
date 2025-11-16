@@ -41,6 +41,7 @@ const CompanyInstitutionRegistration = () => {
     }
 
     try {
+<<<<<<< HEAD
       // ✅ Save to correct Firestore collection
       if (role === "institution") {
         await addDoc(collection(db, "institutions"), {
@@ -64,16 +65,47 @@ const CompanyInstitutionRegistration = () => {
 
       setSuccess("Registration submitted! Wait for admin approval.");
 
+=======
+      // ✅ Save to correct Firestore collection (no auth required)
+      const data = {
+        name: businessName,
+        email: businessEmail,
+        registrationNumber,
+        description,
+        role,
+        status: "pending", // awaiting admin approval
+        createdAt: new Date(),
+      };
+
+      const targetCollection =
+        role === "institution" ? "institutions" : "companies";
+
+      await addDoc(collection(db, targetCollection), data);
+
+      setSuccess(
+        "Registration submitted! Wait for admin approval. You’ll receive an email if approved."
+      );
+
+      // reset form
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
       setBusinessName("");
       setBusinessEmail("");
       setRegistrationNumber("");
       setDescription("");
       setRole("company");
 
+<<<<<<< HEAD
       setTimeout(() => navigate("/"), 4000);
 
     } catch (err) {
       setError("Error submitting registration: " + err.message);
+=======
+      // optional redirect
+      setTimeout(() => navigate("/"), 5000);
+    } catch (err) {
+      console.error("Firestore error:", err);
+      setError("Error submitting registration. Please try again later.");
+>>>>>>> ff4c85ce332f66869dbd202f5419ac366b5aa3b5
     }
   };
 
